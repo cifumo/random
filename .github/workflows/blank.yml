@@ -1,0 +1,38 @@
+name: Delete Large Files
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Menjalankan setiap jam
+  workflow_dispatch: # Bisa dijalankan manual juga
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Hanya ambil commit terbaru untuk efisiensi
+
+      - name: Find & Delete Large Files
+        run: |
+          # Cari file lebih dari 50MB
+          find . -type f -size +50M | while read file; do
+            echo "Menghapus: $file"
+            rm -f "$file"
+          done
+
+      - name: Commit & Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          if git diff --cached --quiet; then
+            echo "Tidak ada file besar yang perlu dihapus."
+            exit 0
+          fi
+          
+          git commit -m "🔥 Otomatis menghapus file >50MB"
+          git push origin main
